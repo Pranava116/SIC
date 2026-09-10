@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TWIN-GUARD | Machine 01</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="brand">TWIN-GUARD</div>
+      <div class="subtitle">Machine Health Monitoring & Emergency Response</div>
+    </div>
+    <div class="top-status">
+      <span id="mqttDot" class="dot offline"></span>
+      <span id="mqttText">MQTT OFFLINE</span>
+      <span class="machine">MACHINE 01</span>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <nav class="section-nav" aria-label="Dashboard sections">
+      <button type="button" class="nav-button active" data-view="dashboard">DASHBOARD</button>
+      <button type="button" class="nav-button" data-view="logs">DATABASE LOGS</button>
+    </nav>
+
+    <div id="dashboardView" class="app-view">
+      <section class="hero-grid">
+      <div class="panel motor-panel">
+        <div class="panel-title">MOTOR STATUS</div>
+        <div id="motorState" class="big-state stopped">STOPPED</div>
+        <div class="motor-meta">
+          <div><span>RPM</span><strong id="rpm">0</strong></div>
+          <div><span>RELAY</span><strong id="relay">OFF</strong></div>
+        </div>
+      </div>
+
+      <div class="panel health-panel">
+        <div class="panel-title">HEALTH / RISK</div>
+        <div id="health" class="health-value">NO DATA</div>
+        <div id="overallRisk" class="risk-pill">NO DATA</div>
+        <div class="risk-row"><span>Thermal</span><b id="thermalRisk">NO DATA</b></div>
+        <div class="risk-row"><span>Mechanical</span><b id="mechanicalRisk">NO DATA</b></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-heading">ACTUAL SENSOR DATA</div>
+      <div class="sensor-grid">
+        <div class="sensor-card">
+          <span class="sensor-label">ROTATIONAL SPEED</span>
+          <strong id="rpmCard">0</strong><small>RPM</small>
+        </div>
+        <div class="sensor-card">
+          <span class="sensor-label">TEMPERATURE</span>
+          <strong id="temp">0.0</strong><small>°C</small>
+          <em id="tempStatus">NO DATA</em>
+        </div>
+        <div class="sensor-card">
+          <span class="sensor-label">VIBRATION ACTIVITY</span>
+          <strong id="vibration">0.0</strong><small>% relative</small>
+          <em id="vibrationStatus">NO DATA</em>
+        </div>
+        <div class="sensor-card">
+          <span class="sensor-label">DATA FRESHNESS</span>
+          <strong id="freshness">—</strong><small>seconds ago</small>
+          <em id="freshnessStatus">WAITING</em>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel chart-panel">
+      <div class="panel-title">LIVE TRENDS</div>
+      <canvas id="trendChart"></canvas>
+    </section>
+
+    <section class="lower-grid">
+      <div class="panel emergency-panel">
+        <div class="panel-title">EMERGENCY RESPONSE</div>
+        <div id="emergencyState" class="emergency-normal">NORMAL</div>
+        <div class="reason-label">Reason</div>
+        <div id="emergencyReason" class="reason">—</div>
+        <div class="controls">
+          <button class="start" onclick="sendCommand('START')">START</button>
+          <button class="stop" onclick="sendCommand('STOP')">STOP</button>
+          <button class="danger" onclick="sendCommand('EMERGENCY_STOP')">EMERGENCY STOP</button>
+          <button class="reset" onclick="sendCommand('RESET_EMERGENCY')">RESET</button>
+        </div>
+      </div>
+
+      <div class="panel system-panel">
+        <div class="panel-title">SYSTEM STATUS</div>
+        <div class="status-line"><span>ESP32 telemetry</span><b id="telemetryStatus">WAITING</b></div>
+        <div class="status-line"><span>MQTT broker</span><b id="mqttStatus2">OFFLINE</b></div>
+        <div class="status-line"><span>Last command</span><b id="lastCommand">—</b></div>
+        <div class="status-line"><span>Last update</span><b id="lastUpdate">—</b></div>
+      </div>
+    </section>
+
+    <section class="panel history-panel">
+      <div class="panel-title">RECENT EVENTS</div>
+      <div id="events">No events yet.</div>
+    </section>
+
+    <footer>
+      Actual measurements are received from the ESP32. Risk and health indicators are decision estimates based on the configured rules.
+    </footer>
+    </div>
+
+    <section id="logsView" class="panel database-logs-panel app-view" hidden>
+      <div class="panel-heading-row">
+        <div>
+          <div class="panel-title">DATABASE LOGS</div>
+          <p class="section-description">Recent telemetry records stored in the database.</p>
+        </div>
+        <span id="logsRefreshStatus" class="refresh-status">REFRESHING EVERY 10 SECONDS</span>
+      </div>
+      <div class="logs-table-wrap">
+        <table class="logs-table">
+          <thead>
+            <tr>
+              <th>Received</th>
+              <th>RPM</th>
+              <th>Temperature</th>
+              <th>Vibration</th>
+              <th>Motor</th>
+              <th>Relay</th>
+              <th>Health</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="databaseLogs">
+            <tr><td colspan="8" class="logs-empty">Loading database logs…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
