@@ -46,12 +46,10 @@ function updateUI(state) {
 
   const rpm = Number(d.rpm || 0);
   const temp = Number(d.temperature || 0);
-  const vib = Number(d.vibrationPercentage || 0);
 
   $("rpm").textContent = Math.round(rpm);
   $("rpmCard").textContent = Math.round(rpm);
   $("temp").textContent = temp.toFixed(1);
-  $("vibration").textContent = vib.toFixed(1);
 
   $("relay").textContent = d.relay ? "ON" : "OFF";
   $("motorState").textContent = d.motorRunning ? "RUNNING" : "STOPPED";
@@ -63,7 +61,8 @@ function updateUI(state) {
   $("mechanicalRisk").textContent = state.risks?.mechanical || "NO DATA";
 
   $("tempStatus").textContent = d.temperatureStatus || "NO DATA";
-  $("vibrationStatus").textContent = d.vibrationDetected ? "DETECTED" : "NO DIGITAL ALERT";
+  $("vibrationStatus").textContent = d.vibrationDetected ? "DETECTED" : "NOT DETECTED";
+  $("vibrationStatus").className = "sensor-state " + (d.vibrationDetected ? "detected" : "not-detected");
 
   const emergency = Boolean(d.emergencyWarning) || Boolean(d.redLED);
   $("emergencyState").textContent = emergency
@@ -105,8 +104,7 @@ function initChart() {
       labels: [],
       datasets: [
         { label: "RPM", data: [], borderWidth: 2, tension: .25, yAxisID: "rpm" },
-        { label: "Temperature °C", data: [], borderWidth: 2, tension: .25, yAxisID: "value" },
-        { label: "Vibration %", data: [], borderWidth: 2, tension: .25, yAxisID: "value" }
+        { label: "Temperature °C", data: [], borderWidth: 2, tension: .25, yAxisID: "value" }
       ]
     },
     options: {
@@ -128,7 +126,6 @@ async function loadHistory() {
     chart.data.labels = rows.map(x => new Date(x.received_at).toLocaleTimeString());
     chart.data.datasets[0].data = rows.map(x => x.rpm);
     chart.data.datasets[1].data = rows.map(x => x.temperature);
-    chart.data.datasets[2].data = rows.map(x => x.vibration_percentage);
     chart.update();
   } catch (e) {
     console.error(e);
@@ -146,9 +143,10 @@ async function loadEvents() {
   }
 }
 
-function createLogCell(value) {
+function createLogCell(value, isCritical = false) {
   const cell = document.createElement("td");
   cell.textContent = value;
+  if (isCritical) cell.classList.add("critical-log-value");
   return cell;
 }
 
@@ -168,15 +166,23 @@ function renderDatabaseLogs(rows) {
 
   rows.forEach((log) => {
     const row = document.createElement("tr");
+    const temperature = Number(log.temperature || 0);
+    const health = String(log.health || "").toUpperCase();
+    const status = String(log.system_status || log.temperature_status || "").toUpperCase();
+    const emergencyActive = Boolean(log.emergency_warning);
+
     row.append(
       createLogCell(new Date(log.received_at).toLocaleString()),
       createLogCell(Math.round(Number(log.rpm || 0))),
-      createLogCell(`${Number(log.temperature || 0).toFixed(1)} °C`),
-      createLogCell(`${Number(log.vibration_percentage || 0).toFixed(1)}%`),
+      createLogCell(`${temperature.toFixed(1)} °C`, temperature >= 65),
+      createLogCell(log.vibration_detected ? "DETECTED" : "NOT DETECTED"),
       createLogCell(log.motor_running ? "RUNNING" : "STOPPED"),
       createLogCell(log.relay ? "ON" : "OFF"),
-      createLogCell(log.health || "—"),
-      createLogCell(log.system_status || log.temperature_status || "—")
+      createLogCell(log.health || "—", health === "CRITICAL"),
+      createLogCell(
+        log.system_status || log.temperature_status || "—",
+        emergencyActive || status.includes("CRITICAL") || status.includes("EMERGENCY")
+      )
     );
     body.append(row);
   });

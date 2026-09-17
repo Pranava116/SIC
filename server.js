@@ -94,6 +94,11 @@ function nowISO() {
   return new Date().toISOString();
 }
 
+// Temporary fallback while the physical temperature sensor is unavailable.
+function simulatedTemperature() {
+  return Math.round((12 + Math.random() * 15) * 10) / 10;
+}
+
 // ============================================
 // RISK ANALYSIS
 // ============================================
@@ -454,6 +459,10 @@ mqttClient.on(
         JSON.parse(
           payload.toString()
         );
+
+      // Replace the unavailable sensor reading with a safe demo-range value.
+      data.temperature =
+        simulatedTemperature();
 
       console.log(
         "Telemetry received:",
